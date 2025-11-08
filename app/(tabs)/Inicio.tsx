@@ -1,25 +1,15 @@
-import { View, Text, StyleSheet } from 'react-native';
-import React from 'react';
+import React from "react";
+import { ScrollView } from "react-native";
+import HeroSection from "@/components/layout/HeroSection";
+import Features from "@/components/layout/Features";
 
-export default function InicioScreen() {
+const Home: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Pantalla de Inicio 🏠</Text>
-      <Text>Aquí puedes ver la información general del usuario.</Text>
-    </View>
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <HeroSection />
+      <Features />
+    </ScrollView>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f0f8ff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-});
+export default Home;
