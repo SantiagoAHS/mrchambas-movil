@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/services/api";
 
 export default function LoginScreen() {
   const { theme } = useTheme();
@@ -10,14 +12,40 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError("Todos los campos son obligatorios");
       return;
     }
+
     setError("");
-    Alert.alert("Simulación", "Inicio de sesión correcto");
+    setLoading(true);
+
+    try {
+      const response = await api.post("user/login/", {
+        email,
+        password,
+      });
+
+      console.log("✅ Respuesta del servidor:", response.data);
+
+      if (response.data.token) {
+        await AsyncStorage.setItem("token", response.data.token);
+        await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+
+        Alert.alert("Inicio de sesión", "Has iniciado sesión correctamente ✅");
+        router.push("/(tabs)/Inicio"); // ✅ Corrige error de tipo
+      } else {
+        setError("Credenciales incorrectas");
+      }
+    } catch (err: any) { // ✅ Define el tipo del error
+      console.error("❌ Error de login:", err.response?.data || err.message);
+      setError("Error al iniciar sesión. Verifica tus datos o conexión.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,7 +65,7 @@ export default function LoginScreen() {
           padding: 24,
           borderRadius: 20,
           borderWidth: 2,
-          borderColor: "#ef4444", // red-500
+          borderColor: "#ef4444",
           backgroundColor: isDark ? "#2a2a2a" : "#fff",
           shadowColor: "#000",
           shadowOpacity: 0.1,
@@ -66,13 +94,15 @@ export default function LoginScreen() {
           placeholderTextColor={isDark ? "#888" : "#aaa"}
           style={{
             borderWidth: 2,
-            borderColor: "#ef4444", // red-500
+            borderColor: "#ef4444",
             borderRadius: 12,
             padding: 12,
             marginBottom: 16,
             color: isDark ? "#fff" : "#000",
             backgroundColor: isDark ? "#3a3a3a" : "#fff",
           }}
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
 
         <Text style={{ color: isDark ? "#ccc" : "#555", marginBottom: 6 }}>Contraseña</Text>
@@ -84,7 +114,7 @@ export default function LoginScreen() {
           secureTextEntry
           style={{
             borderWidth: 2,
-            borderColor: "#ef4444", // red-500
+            borderColor: "#ef4444",
             borderRadius: 12,
             padding: 12,
             marginBottom: 24,
@@ -97,8 +127,9 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           onPress={handleLogin}
+          disabled={loading}
           style={{
-            backgroundColor: "#ef4444", // red-500
+            backgroundColor: loading ? "#aaa" : "#ef4444",
             padding: 14,
             borderRadius: 12,
             borderWidth: 2,
@@ -107,13 +138,11 @@ export default function LoginScreen() {
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "bold", textAlign: "center", fontSize: 16 }}>
-            Iniciar Sesión
+            {loading ? "Iniciando..." : "Iniciar Sesión"}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-            onPress={() => router.push("/register/register")}
-        >
+        <TouchableOpacity onPress={() => router.push("/register/register")}>
           <Text style={{ color: "#ef4444", textAlign: "center", fontWeight: "600" }}>
             ¿No tienes cuenta? Regístrate
           </Text>

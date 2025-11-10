@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { ScrollView, View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/services/api"; // <-- tu API configurada
 import { authStyles, colors } from "@/app/styles/globalStyles";
 
 export default function RegisterScreen() {
@@ -15,7 +17,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
       setError("Todos los campos son obligatorios");
       return;
@@ -24,8 +26,25 @@ export default function RegisterScreen() {
       setError("Las contraseñas no coinciden");
       return;
     }
+
     setError("");
-    Alert.alert("Simulación", "Registro exitoso");
+    try {
+      const res = await api.post("user/register/", {
+        nombre: name,
+        email,
+        password,
+      });
+
+      if (res.data.token) {
+        await AsyncStorage.setItem("token", res.data.token); // guardar token
+      }
+
+      Alert.alert("Éxito", "Registro completado");
+      router.push("/(tabs)/Inicio"); // redirigir al perfil
+    } catch (err: any) {
+      console.log(err.response?.data || err.message);
+      setError(err.response?.data?.detail || "Error al registrarse");
+    }
   };
 
   const bgColor = isDark ? colors.darkBg : colors.lightBg;
@@ -40,7 +59,6 @@ export default function RegisterScreen() {
 
         {error ? <Text style={[authStyles.errorText, { color: colors.red }]}>{error}</Text> : null}
 
-        <Text style={[authStyles.inputLabel, { color: isDark ? "#ccc" : "#555" }]}>Nombre</Text>
         <TextInput
           value={name}
           onChangeText={setName}
@@ -49,17 +67,15 @@ export default function RegisterScreen() {
           style={[authStyles.input, { backgroundColor: inputBg, borderColor: colors.red, color: textColor }]}
         />
 
-        <Text style={[authStyles.inputLabel, { color: isDark ? "#ccc" : "#555" }]}>Correo electrónico</Text>
         <TextInput
           value={email}
           onChangeText={setEmail}
-          placeholder="ejemplo@correo.com"
+          placeholder="Correo electrónico"
           placeholderTextColor={isDark ? "#888" : "#aaa"}
           keyboardType="email-address"
           style={[authStyles.input, { backgroundColor: inputBg, borderColor: colors.red, color: textColor }]}
         />
 
-        <Text style={[authStyles.inputLabel, { color: isDark ? "#ccc" : "#555" }]}>Contraseña</Text>
         <TextInput
           value={password}
           onChangeText={setPassword}
@@ -69,7 +85,6 @@ export default function RegisterScreen() {
           style={[authStyles.input, { backgroundColor: inputBg, borderColor: colors.red, color: textColor }]}
         />
 
-        <Text style={[authStyles.inputLabel, { color: isDark ? "#ccc" : "#555" }]}>Confirmar contraseña</Text>
         <TextInput
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -93,8 +108,8 @@ export default function RegisterScreen() {
     </ScrollView>
   );
 }
+
 // register/register.tsx
 export const screenOptions = {
   headerShown: false,
 };
-

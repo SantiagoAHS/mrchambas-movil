@@ -17,24 +17,6 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={28} color={color} /> 
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="paper-plane" size={28} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="Inicio"
         options={{
           title: 'Home',
