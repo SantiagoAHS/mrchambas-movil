@@ -1,11 +1,11 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 
-const OrdersScreen: React.FC = () => {
+const SettingsScreen: React.FC = () => {
   return <View style={styles.container} />;
 };
 
-export default OrdersScreen;
+export default SettingsScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -13,5 +13,3 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff", // Cambia a "#121212" si quieres modo oscuro predeterminado
   },
 });
-
-

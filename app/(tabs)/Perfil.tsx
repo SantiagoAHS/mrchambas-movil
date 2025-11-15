@@ -93,35 +93,42 @@ export default function PerfilScreen() {
         {/* Botones adicionales */}
         <View style={{ marginTop: 16 }}>
           <TouchableOpacity
-            onPress={() => console.log("Mis Trabajos no disponible aún")}
+            onPress={() => router.push("/offers/page")}
+            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
+          >
+            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Ofertas</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push("/myjobs/page")}
             style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
           >
             <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Trabajos</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => console.log("Mis Servicios no disponible aún")}
+            onPress={() => alert("Esta sección aún no está disponible")}
             style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
           >
             <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Servicios</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => console.log("Mis Chats no disponible aún")}
+            onPress={() => router.push("/myorders/page")}
+            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
+          >
+            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Pedidos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push("/chats/page")}
             style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
           >
             <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Chats</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => console.log("Crear Servicio no disponible aún")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Crear Servicio</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => console.log("Ajustes no disponible aún")}
+            onPress={() => alert("Esta sección aún no está disponible")}
             style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
           >
             <Text style={[authStyles.buttonText, { color: "#fff" }]}>Ajustes</Text>
