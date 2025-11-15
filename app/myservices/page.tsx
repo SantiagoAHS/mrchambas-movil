@@ -1,40 +1,36 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import ContactScreen from "@/components/Ayuda/Contact";
-import AboutPage from "@/components/Ayuda/About";
-import HelpScreen from "@/components/Ayuda/Help"; 
 
-type Tab = "contact" | "about" | "help";
+type Tab = "activos" | "inactivos";
 
-const AyudaScreen: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState<Tab>("contact");
+const MyServicesScreen: React.FC = () => {
+  const [selectedTab, setSelectedTab] = useState<Tab>("activos");
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ayuda</Text>
+        <Text style={styles.headerTitle}>Mis Servicios</Text>
         <View style={styles.tabsContainer}>
-          {["contact", "about", "help"].map((tab) => (
+          {[
+            { key: "activos", label: "Activos" },
+            { key: "inactivos", label: "Inactivos" }
+          ].map((tab) => (
             <TouchableOpacity
-              key={tab}
+              key={tab.key}
               style={[
                 styles.tabButton,
-                selectedTab === tab && styles.tabButtonActive,
+                selectedTab === tab.key && styles.tabButtonActive,
               ]}
-              onPress={() => setSelectedTab(tab as Tab)}
+              onPress={() => setSelectedTab(tab.key as Tab)}
             >
               <Text
                 style={[
                   styles.tabText,
-                  selectedTab === tab && styles.tabTextActive,
+                  selectedTab === tab.key && styles.tabTextActive,
                 ]}
               >
-                {tab === "contact"
-                  ? "Contacto"
-                  : tab === "about"
-                  ? "Acerca de"
-                  : "FAQ"}
+                {tab.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -43,15 +39,23 @@ const AyudaScreen: React.FC = () => {
 
       {/* Contenido */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {selectedTab === "contact" && <ContactScreen />}
-        {selectedTab === "about" && <AboutPage />}
-        {selectedTab === "help" && <HelpScreen />}
+        {selectedTab === "activos" && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>No hay servicios activos</Text>
+          </View>
+        )}
+
+        {selectedTab === "inactivos" && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>No hay servicios inactivos</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 };
 
-export default AyudaScreen;
+export default MyServicesScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -97,5 +101,17 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  section: {
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ef4444",
   },
 });

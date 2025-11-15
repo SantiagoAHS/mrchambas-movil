@@ -107,7 +107,7 @@ export default function PerfilScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => alert("Esta sección aún no está disponible")}
+            onPress={() => router.push("/myservices/page")}
             style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
           >
             <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Servicios</Text>
@@ -128,7 +128,7 @@ export default function PerfilScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => alert("Esta sección aún no está disponible")}
+            onPress={() => router.push("/settings/page")}
             style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
           >
             <Text style={[authStyles.buttonText, { color: "#fff" }]}>Ajustes</Text>
