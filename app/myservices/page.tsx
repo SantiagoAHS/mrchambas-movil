@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import UserServices from "@/components/myservices/page"; // importa tu UserServices
 
 type Tab = "activos" | "inactivos";
 
-const MyServicesScreen: React.FC = () => {
+const MyOrdersScreen: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<Tab>("activos");
 
   return (
@@ -40,9 +41,7 @@ const MyServicesScreen: React.FC = () => {
       {/* Contenido */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {selectedTab === "activos" && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>No hay servicios activos</Text>
-          </View>
+          <UserServices /> // aquí se muestran los servicios activos
         )}
 
         {selectedTab === "inactivos" && (
@@ -55,7 +54,7 @@ const MyServicesScreen: React.FC = () => {
   );
 };
 
-export default MyServicesScreen;
+export default MyOrdersScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: "#ef4444", // rojo
+    backgroundColor: "#ef4444",
     alignItems: "center",
   },
   headerTitle: {
@@ -88,7 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
   },
   tabButtonActive: {
-    backgroundColor: "#ef4444", // rojo activo
+    backgroundColor: "#ef4444",
   },
   tabText: {
     fontSize: 16,

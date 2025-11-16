@@ -88,7 +88,7 @@ export default function PerfilScreen() {
 
         <Text style={{ color: textColor, fontSize: 18, marginBottom: 8 }}>Nombre: {user.nombre}</Text>
         <Text style={{ color: textColor, fontSize: 16, marginBottom: 8 }}>Email: {user.email}</Text>
-        <Text style={{ color: textColor, fontSize: 16, marginBottom: 16 }}>Teléfono: {user.telefono || "N/A"}</Text>
+        <Text style={{ color: textColor, fontSize: 16, marginBottom: 16 }}>Teléfono: {user.telefono ?? "N/A"}</Text>
 
         {/* Botones adicionales */}
         <View style={{ marginTop: 16 }}>
