@@ -161,7 +161,7 @@ export default function PerfilScreen() {
               { label: "Mis Trabajos", path: "/myjobs/page" },
               { label: "Mis Servicios", path: "/myservices/page" },
               { label: "Mis Pedidos", path: "/myorders/page" },
-              { label: "Mis Chats", path: "/chats/page" },
+              { label: "Mis Chats", path: "/chat" },
               { label: "Ajustes", path: "/settings/page" },
             ].map((item, i) => (
               <TouchableOpacity
