@@ -1,10 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { ScrollView, View, Text, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import {
+  ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  Animated,
+  Easing,
+} from "react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "@/services/api";
-import { authStyles, colors } from "@/app/styles/globalStyles";
+import { colors } from "@/app/styles/globalStyles";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function PerfilScreen() {
   const { theme } = useTheme();
@@ -12,16 +22,57 @@ export default function PerfilScreen() {
   const router = useRouter();
 
   const bgColor = isDark ? colors.darkBg : colors.lightBg;
-  const cardBg = isDark ? colors.cardDark : colors.cardLight;
+  const cardBg = "#fff";
   const textColor = isDark ? colors.textLight : colors.textDark;
 
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // ---------- ANIMACIÓN (solo una fuente: slideAnim) ----------
+  // slideAnim: -300 (cerrado) -> 0 (abierto)
+  const slideAnim = useRef(new Animated.Value(-300)).current;
+
+  // Interpolamos la misma animación para la flecha:
+  // cuando slideAnim va de -300 a 0, arrowTranslate irá de 0 a 300
+  const arrowTranslate = slideAnim.interpolate({
+    inputRange: [-300, 0],
+    outputRange: [0, 300],
+    extrapolate: "clamp",
+  });
+
+  const openMenu = () => {
+    setMenuOpen(true); // marca abierto de inmediato (cambia icono)
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 250,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const closeMenu = () => {
+    Animated.timing(slideAnim, {
+      toValue: -300,
+      duration: 250,
+      easing: Easing.in(Easing.ease),
+      useNativeDriver: false,
+    }).start(() => {
+      setMenuOpen(false);
+    });
+  };
+
+  const openPage = (path: string) => {
+    closeMenu();
+    router.push(path);
+  };
+
+  // Cargar perfil
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get("user/profile/"); // https://mibackend-mchambas.onrender.com/api/user/profile/
+        const res = await api.get("user/profile/");
         setUser(res.data);
       } catch (err) {
         console.log("Error al cargar perfil:", err);
@@ -36,113 +87,181 @@ export default function PerfilScreen() {
 
   const handleLogout = async () => {
     await AsyncStorage.removeItem("token");
-    setUser(null);
     router.replace("/login/login");
   };
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: bgColor }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: bgColor,
+        }}
+      >
         <ActivityIndicator size="large" color={colors.red} />
       </View>
     );
   }
 
-  if (!user) {
-    // No logeado
-    return (
-      <ScrollView contentContainerStyle={[authStyles.scrollContainer, { backgroundColor: bgColor }]}>
-        <View style={[authStyles.card, { backgroundColor: cardBg, borderColor: colors.red }]}>
-          <Text style={[authStyles.title, { color: textColor, marginBottom: 32 }]}>Mi Perfil</Text>
+  return (
+    <View style={{ flex: 1, backgroundColor: bgColor }}>
+      {/* ---------------- FLECHA ANIMADA (centrada verticalmente) ---------------- */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: 10,
+          transform: [{ translateY: -20 }, { translateX: arrowTranslate }],
+          zIndex: 20,
+        }}
+      >
+        <TouchableOpacity onPress={menuOpen ? closeMenu : openMenu}>
+          <Ionicons
+            name={menuOpen ? "chevron-back" : "chevron-forward"}
+            size={38}
+            color={textColor}
+          />
+        </TouchableOpacity>
+      </Animated.View>
 
-          <TouchableOpacity
-            onPress={() => router.push("/login/login")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 16 }]}
+      {/* ---------------- MENU LATERAL ---------------- */}
+      <Modal transparent visible={menuOpen}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.4)",
+            flexDirection: "row",
+          }}
+        >
+          <Animated.View
+            style={{
+              width: 300,
+              height: "100%",
+              backgroundColor: cardBg,
+              paddingTop: 60,
+              paddingHorizontal: 20,
+              transform: [{ translateX: slideAnim }],
+            }}
           >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Iniciar Sesión</Text>
-          </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                marginBottom: 20,
+                color: textColor,
+              }}
+            >
+              Menú
+            </Text>
 
-          <TouchableOpacity
-            onPress={() => router.push("/register/register")}
-            style={[authStyles.button, { backgroundColor: "transparent", borderColor: colors.red, borderWidth: 2 }]}
+            {[
+              { label: "Ofertas", path: "/offers/page" },
+              { label: "Mis Trabajos", path: "/myjobs/page" },
+              { label: "Mis Servicios", path: "/myservices/page" },
+              { label: "Mis Pedidos", path: "/myorders/page" },
+              { label: "Mis Chats", path: "/chats/page" },
+              { label: "Ajustes", path: "/settings/page" },
+            ].map((item, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => openPage(item.path)}
+                style={{
+                  paddingVertical: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#ccc",
+                }}
+              >
+                <Text style={{ color: textColor, fontSize: 18 }}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginTop: 30, paddingVertical: 14 }}
+            >
+              <Text style={{ color: colors.red, fontSize: 18 }}>
+                Cerrar Sesión
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Cerrar tocando fuera */}
+          <TouchableOpacity style={{ flex: 1 }} onPress={closeMenu} />
+        </View>
+      </Modal>
+
+      {/* ---------------- TARJETA DE PERFIL ---------------- */}
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <View
+          style={{
+            backgroundColor: "#fff",
+            padding: 20,
+            borderRadius: 16,
+            alignItems: "center",
+            marginBottom: 20,
+            elevation: 4,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 3 },
+          }}
+        >
+          <View
+            style={{
+              width: 90,
+              height: 90,
+              borderRadius: 45,
+              backgroundColor: "#c50000",
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: 12,
+            }}
           >
-            <Text style={[authStyles.buttonText, { color: colors.red }]}>Registrarse</Text>
-          </TouchableOpacity>
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 36,
+                fontWeight: "bold",
+              }}
+            >
+              {user?.nombre ? user.nombre.charAt(0).toUpperCase() : "U"}
+            </Text>
+          </View>
+
+          <Text style={{ fontSize: 22, fontWeight: "bold", color: "#111" }}>
+            {user?.nombre}
+          </Text>
+
+          <Text style={{ fontSize: 16, color: "#555", marginBottom: 8 }}>
+            {user?.email}
+          </Text>
+
+          {user?.telefono && (
+            <Text style={{ fontSize: 14, color: "#444" }}>
+              Teléfono: {user.telefono}
+            </Text>
+          )}
+
+          <View style={{ marginTop: 14 }}>
+            <Text
+              style={{
+                color: "#fff",
+                paddingVertical: 6,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+                backgroundColor: user?.is_verified ? "#16a34a" : "#e11d48",
+                fontWeight: "bold",
+              }}
+            >
+              {user?.is_verified ? "Cuenta Verificada" : "No Verificada"}
+            </Text>
+          </View>
         </View>
       </ScrollView>
-    );
-  }
-
-  // Usuario logeado
-  return (
-    <ScrollView contentContainerStyle={[authStyles.scrollContainer, { backgroundColor: bgColor }]}>
-      <View style={[authStyles.card, { backgroundColor: cardBg, borderColor: colors.red }]}>
-        <Text style={[authStyles.title, { color: textColor, marginBottom: 16 }]}>Mi Perfil</Text>
-
-        {user.avatar && (
-          <Image
-            source={{ uri: `https://mibackend-mchambas.onrender.com${user.avatar}` }}
-            style={{ width: 100, height: 100, borderRadius: 50, marginBottom: 16 }}
-          />
-        )}
-
-        <Text style={{ color: textColor, fontSize: 18, marginBottom: 8 }}>Nombre: {user.nombre}</Text>
-        <Text style={{ color: textColor, fontSize: 16, marginBottom: 8 }}>Email: {user.email}</Text>
-        <Text style={{ color: textColor, fontSize: 16, marginBottom: 16 }}>Teléfono: {user.telefono ?? "N/A"}</Text>
-
-        {/* Botones adicionales */}
-        <View style={{ marginTop: 16 }}>
-          <TouchableOpacity
-            onPress={() => router.push("/offers/page")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Ofertas</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push("/myjobs/page")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Trabajos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push("/myservices/page")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Servicios</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push("/myorders/page")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Pedidos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push("/chats/page")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Mis Chats</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push("/settings/page")}
-            style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginBottom: 12 }]}
-          >
-            <Text style={[authStyles.buttonText, { color: "#fff" }]}>Ajustes</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Cerrar sesión */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={[authStyles.button, { backgroundColor: colors.red, borderColor: colors.red, marginTop: 24 }]}
-        >
-          <Text style={[authStyles.buttonText, { color: "#fff" }]}>Cerrar Sesión</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    </View>
   );
 }
