@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import UserServices from "@/components/myservices/page"; // importa tu UserServices
+import UserServices from "@/components/myservices/page"; 
+import ServicesCreate from "@/components/services/create/page"; 
+import ServicesUpdate from "@/components/services/update/page"; 
 
-type Tab = "activos" | "inactivos";
+type Tab = "activos" | "crear" | "editar";
 
 const MyOrdersScreen: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<Tab>("activos");
@@ -15,7 +17,8 @@ const MyOrdersScreen: React.FC = () => {
         <View style={styles.tabsContainer}>
           {[
             { key: "activos", label: "Activos" },
-            { key: "inactivos", label: "Inactivos" }
+            { key: "crear", label: "Crear" },
+            { key: "editar", label: "Editar" },
           ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
@@ -40,13 +43,22 @@ const MyOrdersScreen: React.FC = () => {
 
       {/* Contenido */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Lista de servicios */}
         {selectedTab === "activos" && (
-          <UserServices /> // aquí se muestran los servicios activos
+          <UserServices />
         )}
 
-        {selectedTab === "inactivos" && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>No hay servicios inactivos</Text>
+        {/* Crear servicio */}
+        {selectedTab === "crear" && (
+          <View style={{ paddingBottom: 50 }}>
+            <ServicesCreate /> 
+          </View>
+        )}
+
+        {/* Editar servicio */}
+        {selectedTab === "editar" && (
+          <View style={{ paddingBottom: 50 }}>
+            <ServicesUpdate /> 
           </View>
         )}
       </ScrollView>
@@ -57,60 +69,13 @@ const MyOrdersScreen: React.FC = () => {
 export default MyOrdersScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: "#ef4444",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 12,
-  },
-  tabsContainer: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    backgroundColor: "#f3f4f6",
-  },
-  tabButtonActive: {
-    backgroundColor: "#ef4444",
-  },
-  tabText: {
-    fontSize: 16,
-    color: "#111",
-  },
-  tabTextActive: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    padding: 16,
-    marginBottom: 16,
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ef4444",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: { paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "#ef4444", alignItems: "center" },
+  headerTitle: { fontSize: 24, fontWeight: "bold", color: "#fff", marginBottom: 12 },
+  tabsContainer: { flexDirection: "row", backgroundColor: "#fff", borderRadius: 8, overflow: "hidden" },
+  tabButton: { flex: 1, paddingVertical: 10, alignItems: "center", backgroundColor: "#f3f4f6" },
+  tabButtonActive: { backgroundColor: "#ef4444" },
+  tabText: { fontSize: 16, color: "#111" },
+  tabTextActive: { color: "#fff", fontWeight: "bold" },
+  content: { flex: 1, padding: 16 },
 });
