@@ -4,9 +4,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import { useTheme } from "@/context/ThemeContext";
 import { Star, MapPin, Clock, ArrowLeft } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ServicesDetailScreen() {
-  const { id } = useLocalSearchParams(); // obtiene el id desde la ruta
+  const { id } = useLocalSearchParams(); 
   const router = useRouter();
   const { theme } = useTheme();
   const [service, setService] = useState<any>(null);
@@ -24,15 +25,12 @@ export default function ServicesDetailScreen() {
     secondary: isLight ? "#6b7280" : "#9ca3af",
   };
 
-
   useEffect(() => {
     const fetchService = async () => {
       try {
         const res = await axios.get(`https://mibackend-mchambas.onrender.com/api/services/${id}/`);
-        console.log("✅ Detalle del servicio:", res.data);
         setService(res.data);
       } catch (err) {
-        console.error("❌ Error al obtener detalle:", err);
         setError("No se pudo cargar la información del servicio.");
       } finally {
         setLoading(false);
@@ -44,7 +42,7 @@ export default function ServicesDetailScreen() {
         const res = await axios.get(`https://mibackend-mchambas.onrender.com/api/services/${id}/reviews/`);
         setReviews(res.data);
       } catch (err) {
-        console.error("❌ Error al cargar reviews:", err);
+        console.log("❌ Error reviews:", err);
       } finally {
         setLoadingReviews(false);
       }
@@ -54,17 +52,71 @@ export default function ServicesDetailScreen() {
     fetchReviews();
   }, [id]);
 
-  const handleContact = () => {
-    Alert.alert("Contacto", `Contactando a ${service?.provider?.nombre || "el proveedor"}...`);
+  const handleContact = async () => {
+    try {
+      // Obtener token desde AsyncStorage
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Debes iniciar sesión para contactar");
+        return;
+      }
+
+      if (!service?.provider?.id) {
+        Alert.alert("Error", "No se pudo obtener el proveedor del servicio.");
+        return;
+      }
+
+      // 1️⃣ Crear chat
+      const chatRes = await fetch(
+        "https://mibackend-mchambas.onrender.com/api/chats/create/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+          body: JSON.stringify({ other_user_id: service.provider.id }),
+        }
+      );
+
+      if (!chatRes.ok) throw new Error("No se pudo crear el chat");
+
+      const chat = await chatRes.json();
+
+      // 2️⃣ Enviar mensaje inicial
+      await fetch(
+        `https://mibackend-mchambas.onrender.com/api/chats/${chat.id}/send/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+          body: JSON.stringify({
+            content: "Hola, estoy interesado en tu servicio",
+          }),
+        }
+      );
+
+      Alert.alert("Éxito", "Se ha creado el chat y enviado el mensaje.");
+      router.push("/chat"); // Redirigir a la pantalla de chats
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "No se pudo contactar al proveedor.");
+    }
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
-  }
+  const handleHire = () => {
+    if (!service?.id) {
+      Alert.alert("Error", "No se pudo obtener la información del servicio.");
+      return;
+    }
+
+    router.push({
+      pathname: '/payments/checkout/[id]',
+      params: { id: String(service.id) },
+    });
+  };
 
   if (error || !service) {
     return (
@@ -79,6 +131,7 @@ export default function ServicesDetailScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
+      
       <TouchableOpacity
         style={{ flexDirection: "row", alignItems: "center", margin: 16 }}
         onPress={() => router.back()}
@@ -103,9 +156,7 @@ export default function ServicesDetailScreen() {
 
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
           <View style={styles.avatar}>
-            <Text style={{ fontWeight: "bold" }}>
-              {service.provider?.nombre?.[0] || "?"}
-            </Text>
+            <Text style={{ fontWeight: "bold" }}>{service.provider?.nombre?.[0] || "?"}</Text>
           </View>
           <Text style={{ color: colors.secondary }}>{service.provider?.nombre || "Sin nombre"}</Text>
         </View>
@@ -115,9 +166,7 @@ export default function ServicesDetailScreen() {
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 12 }}>
           <View style={styles.rowItem}>
             <Star size={18} color="#facc15" fill="#facc15" />
-            <Text style={{ color: colors.text, fontWeight: "bold" }}>
-              {service.rating || "5.0"}
-            </Text>
+            <Text style={{ color: colors.text, fontWeight: "bold" }}>{service.rating || "5.0"}</Text>
             <Text style={{ color: colors.secondary }}>({service.reviews || 0})</Text>
           </View>
 
@@ -138,6 +187,18 @@ export default function ServicesDetailScreen() {
           {service.price || "$500"}
         </Text>
 
+        {/* ✔ NUEVO BOTÓN CONTRATAR */}
+        <TouchableOpacity
+          onPress={handleHire}
+          style={[
+            styles.button,
+            { backgroundColor: "#15803d", borderColor: "#15803d" },
+          ]}
+        >
+          <Text style={styles.buttonText}>Contratar</Text>
+        </TouchableOpacity>
+
+        {/* ✔ BOTÓN CONTACTAR (YA EXISTENTE) */}
         <TouchableOpacity
           onPress={handleContact}
           style={[
@@ -147,8 +208,10 @@ export default function ServicesDetailScreen() {
         >
           <Text style={styles.buttonText}>Contactar</Text>
         </TouchableOpacity>
+
       </View>
 
+      {/* RESEÑAS */}
       <View style={{ padding: 16, marginTop: 16 }}>
         <Text style={[styles.title, { color: colors.accent, fontSize: 20 }]}>Reseñas</Text>
 
@@ -167,17 +230,26 @@ export default function ServicesDetailScreen() {
                 marginTop: 8,
               }}
             >
-              <Text style={{ color: colors.text, fontWeight: "bold" }}>{review.user?.nombre || "Usuario"}</Text>
-              <Text style={{ color: colors.secondary, fontSize: 12 }}>{review.created_at}</Text>
+              <Text style={{ color: colors.text, fontWeight: "bold" }}>
+                {review.user?.nombre || "Usuario"}
+              </Text>
+              <Text style={{ color: colors.secondary, fontSize: 12 }}>
+                {review.created_at}
+              </Text>
+
               <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
                 <Star size={16} color="#facc15" fill="#facc15" />
                 <Text style={{ color: colors.text, marginLeft: 4 }}>{review.rating}</Text>
               </View>
-              <Text style={{ color: colors.text, marginTop: 4 }}>{review.comment}</Text>
+
+              <Text style={{ color: colors.text, marginTop: 4 }}>
+                {review.comment}
+              </Text>
             </View>
           ))
         )}
       </View>
+
     </ScrollView>
   );
 }
