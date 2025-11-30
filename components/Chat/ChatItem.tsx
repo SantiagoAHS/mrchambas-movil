@@ -48,14 +48,20 @@ export default function ChatItem({
         <Text style={[styles.name, { color: themeColors.text }]}>
           {nombre}
         </Text>
-        <Text style={styles.message} numberOfLines={1}>
+
+        <Text
+          style={[styles.message, { color: themeColors.text + "99" }]}
+          numberOfLines={1}
+        >
           {ultimoMensaje}
         </Text>
       </View>
 
       {/* Derecha */}
       <View style={styles.rightSection}>
-        <Text style={styles.time}>{hora}</Text>
+        <Text style={[styles.time, { color: themeColors.text + "88" }]}>
+          {hora}
+        </Text>
 
         <View style={styles.rightBottom}>
           {pinned && <Pin size={16} color="#999" style={{ marginRight: 6 }} />}
@@ -113,7 +119,6 @@ const styles = StyleSheet.create({
 
   message: {
     fontSize: 14,
-    color: "#777",
   },
 
   rightSection: {
@@ -122,7 +127,6 @@ const styles = StyleSheet.create({
 
   time: {
     fontSize: 12,
-    color: "#999",
     marginBottom: 6,
   },
 

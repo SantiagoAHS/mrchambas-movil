@@ -1,211 +1,390 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
-import { colors } from "@/app/styles/globalStyles";
-import ChatItem from "@/components/Chat/ChatItem";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-interface ChatData {
+interface User {
   id: number;
   nombre: string;
-  avatar?: string;
-  ultimoMensaje: string;
-  hora: string;
-  noLeidos: number;
-  pinned?: boolean;
 }
 
-export default function ChatList() {
-  const router = useRouter();
+interface Message {
+  id: number;
+  chat: number;
+  sender: User;
+  content: string;
+  timestamp: string;
+}
+
+interface Chat {
+  id: number;
+  participants: User[];
+  messages: Message[];
+}
+
+export default function ChatMobile() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const bg = isDark ? colors.darkBg : "#f9f9f9";
-  const text = isDark ? "#fff" : "#111";
-  const card = isDark ? "#1c1c1e" : "#fff";
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
+  const [activeChat, setActiveChat] = useState<Chat | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [userId, setUserId] = useState<number | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
 
-  const [chats, setChats] = useState<ChatData[]>([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"todos" | "leidos" | "no-leidos">(
-    "todos"
-  );
-  const [menuVisible, setMenuVisible] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
+  // 🔹 Cargar token y userId desde AsyncStorage
   useEffect(() => {
-    setChats([
-      {
-        id: 1,
-        nombre: "Juan Pérez",
-        ultimoMensaje: "Sí, mañana te entrego el trabajo.",
-        hora: "4:21 PM",
-        noLeidos: 2,
-        pinned: true,
-      },
-      {
-        id: 2,
-        nombre: "Carla",
-        ultimoMensaje: "¡Gracias! 😊",
-        hora: "1:05 PM",
-        noLeidos: 0,
-      },
-      {
-        id: 3,
-        nombre: "Cliente nuevo",
-        ultimoMensaje: "¿Cuánto cobras?",
-        hora: "Ayer",
-        noLeidos: 1,
-      },
-    ]);
+    const loadCredentials = async () => {
+      const t = await AsyncStorage.getItem("token");
+      const uid = await AsyncStorage.getItem("userId");
+      setToken(t);
+      if (uid) setUserId(parseInt(uid));
+    };
+    loadCredentials();
   }, []);
 
-  const filteredChats = chats
-    .filter((c) => c.nombre.toLowerCase().includes(search.toLowerCase()))
-    .filter((c) => {
-      if (filter === "todos") return true;
-      if (filter === "no-leidos") return c.noLeidos > 0;
-      if (filter === "leidos") return c.noLeidos === 0;
-    });
+  // 🔹 Traer chats y actualizar automáticamente
+  useEffect(() => {
+    if (!token) return;
 
-  const openChat = (id: number, nombre: string) =>
-    router.push({
-      pathname: `/chat/${id}`,
-      params: { nombre },
-    });
+    const fetchChats = async () => {
+      try {
+        const res = await fetch(
+          "https://mibackend-mchambas.onrender.com/api/chats/",
+          { headers: { Authorization: `Token ${token}` } }
+        );
+        const data = await res.json();
+        const newChats: Chat[] = data.chats || data;
+
+        setChats((prev) => {
+          // Actualizar chats existentes y agregar nuevos
+          const merged = newChats.map((nc) => {
+            const existing = prev.find((c) => c.id === nc.id);
+            return existing ? { ...existing, ...nc, messages: nc.messages } : nc;
+          });
+          const newOnes = prev.filter((c) => !merged.some((m) => m.id === c.id));
+          const combined = [...merged, ...newOnes];
+
+          // Ordenar por último mensaje
+          combined.sort((a, b) => {
+            const aTime = a.messages.at(-1)?.timestamp || "";
+            const bTime = b.messages.at(-1)?.timestamp || "";
+            return bTime.localeCompare(aTime);
+          });
+
+          return combined;
+        });
+      } catch (err) {
+        console.error("Error al obtener chats", err);
+      }
+    };
+
+    fetchChats();
+    const interval = setInterval(fetchChats, 10000); // cada 10s revisa nuevos chats
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // 🔹 Actualizar mensajes del chat activo y reordenar chats
+  useEffect(() => {
+    if (!token || !activeChat) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `https://mibackend-mchambas.onrender.com/api/chats/${activeChat.id}/`,
+          { headers: { Authorization: `Token ${token}` } }
+        );
+        if (!res.ok) return;
+        const updatedChat: Chat = await res.json();
+
+        // 🔹 Actualizar activeChat si cambió
+        setActiveChat((prev) => {
+          if (!prev) return updatedChat;
+          if (updatedChat.messages.length !== prev.messages.length) return updatedChat;
+          return prev;
+        });
+
+        // 🔹 Actualizar lista de chats
+        setChats((prev) => {
+          const updated = prev.map((c) =>
+            c.id === updatedChat.id ? updatedChat : c
+          );
+
+          updated.sort((a, b) => {
+            const aTime = a.messages.at(-1)?.timestamp || "";
+            const bTime = b.messages.at(-1)?.timestamp || "";
+            return bTime.localeCompare(aTime);
+          });
+
+          return updated;
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [token, activeChat?.id]);
+
+  // 🔹 Enviar mensaje
+  const handleSend = async () => {
+    if (!newMessage.trim() || !activeChat || !token) return;
+    try {
+      const res = await fetch(
+        `https://mibackend-mchambas.onrender.com/api/chats/${activeChat.id}/send/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Token ${token}`,
+          },
+          body: JSON.stringify({ content: newMessage }),
+        }
+      );
+      if (!res.ok) throw new Error("No se pudo enviar el mensaje");
+      const newMsg = await res.json();
+
+      // 🔹 Actualizar activeChat
+      setActiveChat((prev) =>
+        prev ? { ...prev, messages: [...prev.messages, newMsg] } : prev
+      );
+
+      // 🔹 Actualizar lista de chats
+      setChats((prev) => {
+        const updated = prev.map((c) =>
+          c.id === activeChat.id
+            ? { ...c, messages: [...c.messages, newMsg] }
+            : c
+        );
+
+        updated.sort((a, b) => {
+          const aTime = a.messages.at(-1)?.timestamp || "";
+          const bTime = b.messages.at(-1)?.timestamp || "";
+          return bTime.localeCompare(aTime);
+        });
+
+        return updated;
+      });
+
+      setNewMessage("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 🔹 Scroll automático cuando llegan mensajes
+  useEffect(() => {
+    scrollRef.current?.scrollToEnd({ animated: true });
+  }, [activeChat?.messages]);
+
+  const getOtherParticipantName = (chat: Chat) => {
+    if (!chat.participants.length || userId === null) return "Usuario";
+    const other = chat.participants.find((u) => u.id !== userId);
+    return other ? other.nombre : "Tú";
+  };
+
+  useEffect(() => {
+    if (!searchText.trim()) {
+      setFilteredChats(chats);
+    } else {
+      const filtered = chats.filter((chat) =>
+        getOtherParticipantName(chat)
+          .toLowerCase()
+          .includes(searchText.toLowerCase())
+      );
+      setFilteredChats(filtered);
+    }
+  }, [searchText, chats]);
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
-      {/* BUSCADOR + MENU */}
-      <View style={styles.searchRow}>
-        <TextInput
-          placeholder="Buscar chat..."
-          placeholderTextColor={isDark ? "#aaa" : "#777"}
-          value={search}
-          onChangeText={setSearch}
-          style={[
-            styles.searchInput,
-            { backgroundColor: card, color: text },
-          ]}
-        />
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: isDark ? "#3a3a3a" : "#f0f0f0" }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      {/* Buscador */}
+      <TextInput
+        placeholder="Buscar chat..."
+        placeholderTextColor={isDark ? "#aaa" : "#777"}
+        value={searchText}
+        onChangeText={setSearchText}
+        style={[
+          styles.searchInput,
+          { backgroundColor: isDark ? "#2f2f2f" : "#f2f2f2", color: isDark ? "#fff" : "#000" },
+        ]}
+      />
 
-        <TouchableOpacity
-          onPress={() => setMenuVisible(!menuVisible)}
-          style={styles.menuButton}
-        >
-          <Text style={{ fontSize: 22, color: text }}>☰</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* MENU */}
-      {menuVisible && (
-        <View style={[styles.menuDropdown, { backgroundColor: card }]}>
+      {/* Lista de chats */}
+      <ScrollView style={styles.chatList}>
+        {filteredChats.map((chat) => (
           <TouchableOpacity
-            onPress={() => {
-              setFilter("todos");
-              setMenuVisible(false);
-            }}
-            style={styles.menuItem}
+            key={chat.id}
+            style={[
+              styles.chatItem,
+              {
+                backgroundColor:
+                  activeChat?.id === chat.id
+                    ? "#ef4444"
+                    : isDark
+                    ? "#2f2f2f"
+                    : "#fff",
+              },
+            ]}
+            onPress={() => setActiveChat(chat)}
           >
-            <Text style={{ color: text }}>Todos</Text>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {getOtherParticipantName(chat).charAt(0)}
+              </Text>
+            </View>
+            <View style={styles.chatText}>
+              <Text
+                style={{
+                  color: activeChat?.id === chat.id ? "#fff" : isDark ? "#fff" : "#000",
+                  fontWeight: "bold",
+                }}
+              >
+                {getOtherParticipantName(chat)}
+              </Text>
+              <Text
+                style={{
+                  color: activeChat?.id === chat.id ? "#fff" : "#777",
+                  fontSize: 12,
+                }}
+                numberOfLines={1}
+              >
+                {chat.messages.at(-1)?.content || "Sin mensajes"}
+              </Text>
+            </View>
           </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-          <TouchableOpacity
-            onPress={() => {
-              setFilter("no-leidos");
-              setMenuVisible(false);
-            }}
-            style={styles.menuItem}
-          >
-            <Text style={{ color: text }}>No leídos</Text>
-          </TouchableOpacity>
+      {/* Chat activo */}
+      {activeChat && (
+        <View style={[styles.chatContainer, { backgroundColor: isDark ? "#1c1c1e" : "#fff" }]}>
+          <Text style={[styles.chatTitle, { color: isDark ? "#fff" : "#000" }]}>
+            {getOtherParticipantName(activeChat)}
+          </Text>
 
-          <TouchableOpacity
-            onPress={() => {
-              setFilter("leidos");
-              setMenuVisible(false);
-            }}
-            style={styles.menuItem}
+          <ScrollView
+            style={{ flex: 1 }}
+            ref={scrollRef}
           >
-            <Text style={{ color: text }}>Leídos</Text>
-          </TouchableOpacity>
+            {activeChat.messages.slice(-50).map((msg) => {
+              const mine = msg.sender.id === userId;
+              return (
+                <View
+                  key={msg.id}
+                  style={[
+                    styles.messageBubble,
+                    {
+                      backgroundColor: mine ? "#ef4444" : isDark ? "#2f2f2f" : "#eee",
+                      alignSelf: mine ? "flex-end" : "flex-start",
+                    },
+                  ]}
+                >
+                  <Text style={{ color: mine ? "#fff" : isDark ? "#fff" : "#000" }}>
+                    {msg.content}
+                  </Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          {/* Input flotante */}
+          <View style={{ paddingBottom: 20 }}>
+            <View style={[styles.sendContainer, { marginBottom: 10 }]}>
+              <TextInput
+                placeholder="Escribe un mensaje..."
+                placeholderTextColor={isDark ? "#aaa" : "#777"}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                onSubmitEditing={handleSend}
+                style={[
+                  styles.input,
+                  { backgroundColor: isDark ? "#2f2f2f" : "#f2f2f2", color: isDark ? "#fff" : "#000" },
+                ]}
+              />
+              <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>Enviar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       )}
-
-      {/* LISTA */}
-      <FlatList
-        data={filteredChats}
-        keyExtractor={(item) => item.id.toString()}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        renderItem={({ item }) => (
-          <ChatItem
-            id={item.id}
-            nombre={item.nombre}
-            avatar={item.avatar}
-            ultimoMensaje={item.ultimoMensaje}
-            hora={item.hora}
-            noLeidos={item.noLeidos}
-            pinned={item.pinned}
-            themeColors={{ text, card }}
-            onPress={() => openChat(item.id, item.nombre)}
-          />
-        )}
-      />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-  },
-
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-
+  container: { flex: 1 },
   searchInput: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 12,
-    fontSize: 15,
+    margin: 10,
+    padding: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#d0d0d0",
   },
-
-  menuButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
+  chatList: {
+    maxHeight: 200,
   },
-
-  menuDropdown: {
-    position: "absolute",
-    top: 70,
-    right: 12,
-    width: 150,
+  chatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderBottomWidth: 1,
+    borderColor: "#d0d0d0",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ef4444",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  avatarText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  chatText: { flex: 1 },
+  chatContainer: { flex: 1, padding: 10 },
+  chatTitle: { fontWeight: "bold", fontSize: 16, marginBottom: 6 },
+  messageBubble: {
+    padding: 10,
     borderRadius: 12,
-    paddingVertical: 6,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    zIndex: 20,
+    marginBottom: 6,
+    maxWidth: "70%",
   },
-
-  menuItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+  sendContainer: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  input: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#d0d0d0",
+  },
+  sendButton: {
+    backgroundColor: "#ef4444",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
   },
 });

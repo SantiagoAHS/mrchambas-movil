@@ -95,14 +95,67 @@ const SettingsScreen: React.FC = () => {
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "#c50000", alignItems: "center" },
-  headerTitle: { fontSize: 24, fontWeight: "bold", color: "#fff", marginBottom: 12 },
-  tabsContainer: { flexDirection: "row", backgroundColor: "#fff", borderRadius: 8, overflow: "hidden" },
-  tabButton: { flex: 1, paddingVertical: 10, alignItems: "center", backgroundColor: "#f3f4f6" },
-  tabButtonActive: { backgroundColor: "#c50000" },
-  tabText: { fontSize: 16, color: "#111" },
-  tabTextActive: { color: "#fff", fontWeight: "bold" },
-  content: { flex: 1, padding: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  header: {
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: "#ef4444", // rojo
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+  },
+  tabButtonActive: {
+    backgroundColor: "#ef4444", // rojo activo
+  },
+  tabText: {
+    fontSize: 16,
+    color: "#111",
+  },
+  tabTextActive: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  section: {
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ef4444",
+  },
 });
+
+

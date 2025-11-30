@@ -15,38 +15,44 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError("Todos los campos son obligatorios");
-      return;
+  if (!email || !password) {
+    setError("Todos los campos son obligatorios");
+    return;
+  }
+
+  setError("");
+  setLoading(true);
+
+  try {
+    const response = await api.post("user/login/", {
+      email,
+      password,
+    });
+
+    console.log("✅ Respuesta del servidor:", response.data);
+
+    if (response.data.token) {
+      await AsyncStorage.setItem("token", response.data.token);
+      await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+      await AsyncStorage.setItem("userId", response.data.user.id.toString());
+
+      // 🔍 Comprobación real
+      const savedId = await AsyncStorage.getItem("userId");
+      console.log("🔎 ID guardado correctamente:", savedId);
+
+      Alert.alert("Inicio de sesión", "Has iniciado sesión correctamente ✅");
+      router.push("/(tabs)/Inicio");
+    } else {
+      setError("Credenciales incorrectas");
     }
+  } catch (err: any) {
+    console.error("❌ Error de login:", err.response?.data || err.message);
+    setError("Error al iniciar sesión. Verifica tus datos o conexión.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-    setError("");
-    setLoading(true);
-
-    try {
-      const response = await api.post("user/login/", {
-        email,
-        password,
-      });
-
-      console.log("✅ Respuesta del servidor:", response.data);
-
-      if (response.data.token) {
-        await AsyncStorage.setItem("token", response.data.token);
-        await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
-
-        Alert.alert("Inicio de sesión", "Has iniciado sesión correctamente ✅");
-        router.push("/(tabs)/Inicio"); // ✅ Corrige error de tipo
-      } else {
-        setError("Credenciales incorrectas");
-      }
-    } catch (err: any) { // ✅ Define el tipo del error
-      console.error("❌ Error de login:", err.response?.data || err.message);
-      setError("Error al iniciar sesión. Verifica tus datos o conexión.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <ScrollView

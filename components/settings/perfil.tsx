@@ -53,8 +53,10 @@ const Perfil = () => {
       {profile.avatar ? (
         <Image source={{ uri: profile.avatar }} style={styles.avatar} />
       ) : (
-        <View style={styles.avatarPlaceholder}>
-          <User size={60} color="#555" />
+        <View style={styles.avatarInitial}>
+          <Text style={styles.avatarLetter}>
+            {profile.nombre ? profile.nombre.charAt(0).toUpperCase() : "U"}
+          </Text>
         </View>
       )}
 
@@ -95,6 +97,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+
   avatar: {
     width: 120,
     height: 120,
@@ -103,15 +106,23 @@ const styles = StyleSheet.create({
     borderColor: "#c50000",
     marginBottom: 20,
   },
-  avatarPlaceholder: {
+
+  // Avatar rojo con letra
+  avatarInitial: {
     width: 120,
     height: 120,
     borderRadius: 100,
-    backgroundColor: "#ddd",
+    backgroundColor: "#c50000",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
+  avatarLetter: {
+    color: "#fff",
+    fontSize: 50,
+    fontWeight: "bold",
+  },
+
   infoContainer: {
     width: "100%",
     gap: 10,
