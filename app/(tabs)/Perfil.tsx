@@ -158,9 +158,9 @@ export default function PerfilScreen() {
 
             {[
               { label: "Ofertas", path: "/offers/page" },
-              { label: "Mis Trabajos", path: "/myjobs/page" },
+              { label: "Mis Trabajos", path: "/myjobs" },
               { label: "Mis Servicios", path: "/myservices/page" },
-              { label: "Mis Pedidos", path: "/myorders/page" },
+              { label: "Mis Pedidos", path: "/myorders" },
               { label: "Mis Chats", path: "/chat" },
               { label: "Ajustes", path: "/settings/page" },
             ].map((item, i) => (
