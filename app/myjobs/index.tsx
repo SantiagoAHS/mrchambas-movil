@@ -1,5 +1,5 @@
 // app/myservices/index.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,21 +7,17 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { router } from "expo-router";
-
-interface ServicioDetalle {
-  title: string;
-  price: number;
-  description?: string;
-}
+import { router, useFocusEffect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Servicio {
   id: number;
-  servicio_detalle: ServicioDetalle;
+  servicio_detalle: {
+    title: string;
+  };
   fecha: string;
   estado: string;
-  cliente: string;
-  cantidad: number;
+  comprador: string;
   total: number;
 }
 
@@ -31,46 +27,57 @@ const MyServicesScreen = () => {
     "activos"
   );
 
+  // -------------------------
+  // 🔄 FUNCIÓN PARA CARGAR SERVICIOS
+  // -------------------------
+  const cargarServicios = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const res = await fetch(
+        "https://mibackend-mchambas.onrender.com/api/ventas/mis-ventas/",
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Error cargando servicios");
+        return;
+      }
+
+      const data = await res.json();
+      setServicios(data);
+    } catch (err) {
+      console.error("Error de red:", err);
+    }
+  };
+
+  // -------------------------
+  // 📌 CARGAR UNA VEZ AL INICIO
+  // -------------------------
   useEffect(() => {
-    setServicios([
-      {
-        id: 10,
-        servicio_detalle: { title: "Reparación de lavadora", price: 500 },
-        fecha: "2025-12-01",
-        estado: "pendiente",
-        cliente: "Roberto Díaz",
-        cantidad: 1,
-        total: 500,
-      },
-      {
-        id: 11,
-        servicio_detalle: { title: "Instalación eléctrica", price: 900 },
-        fecha: "2025-11-22",
-        estado: "iniciado",
-        cliente: "Lucía Hernández",
-        cantidad: 1,
-        total: 900,
-      },
-      {
-        id: 12,
-        servicio_detalle: { title: "Pintura exterior", price: 1500 },
-        fecha: "2025-11-10",
-        estado: "completado",
-        cliente: "Jesús Ortega",
-        cantidad: 1,
-        total: 1500,
-      },
-      {
-        id: 13,
-        servicio_detalle: { title: "Cambio de tubería", price: 700 },
-        fecha: "2025-10-18",
-        estado: "cancelado",
-        cliente: "Ana Pérez",
-        cantidad: 1,
-        total: 700,
-      },
-    ]);
+    cargarServicios();
   }, []);
+
+  // -------------------------
+  // 🔄 AUTO REFRESH CADA VEZ QUE ENTRES A LA PANTALLA
+  // -------------------------
+  useFocusEffect(
+    useCallback(() => {
+      cargarServicios(); // cargar al abrir
+
+      // Intervalo para auto refresco cada 5 segundos
+      const interval = setInterval(() => {
+        cargarServicios();
+      }, 5000);
+
+      // limpiar al salir de pantalla
+      return () => clearInterval(interval);
+    }, [])
+  );
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
@@ -107,10 +114,7 @@ const MyServicesScreen = () => {
       {/* TABS */}
       <View style={styles.tabs}>
         <TouchableOpacity
-          style={[
-            styles.tab,
-            selectedTab === "activos" && styles.tabSelected,
-          ]}
+          style={[styles.tab, selectedTab === "activos" && styles.tabSelected]}
           onPress={() => setSelectedTab("activos")}
         >
           <Text
@@ -124,10 +128,7 @@ const MyServicesScreen = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.tab,
-            selectedTab === "inactivos" && styles.tabSelected,
-          ]}
+          style={[styles.tab, selectedTab === "inactivos" && styles.tabSelected]}
           onPress={() => setSelectedTab("inactivos")}
         >
           <Text
@@ -153,10 +154,12 @@ const MyServicesScreen = () => {
             })
           }
         >
-          <Text style={styles.title}>{servicio.servicio_detalle.title}</Text>
+          <Text style={styles.title}>
+            {servicio.servicio_detalle?.title || "Sin título"}
+          </Text>
 
           <Text style={styles.text}>
-            <Text style={styles.bold}>Cliente:</Text> {servicio.cliente}
+            <Text style={styles.bold}>Cliente:</Text> {servicio.comprador}
           </Text>
 
           <Text style={styles.text}>
@@ -191,8 +194,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
   },
-
-  /* TABS */
   tabs: {
     flexDirection: "row",
     marginBottom: 16,
@@ -217,8 +218,6 @@ const styles = StyleSheet.create({
   tabTextSelected: {
     color: "#fff",
   },
-
-  /* CARDS */
   card: {
     backgroundColor: "#f8f9fa",
     padding: 16,
