@@ -37,7 +37,7 @@ export default function ServiceCard({ service }: { service: Service }) {
     <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.background }]}>
       <View>
         <Image
-          source={{ uri: service.image || "https://via.placeholder.com/400x200" }}
+          source={require("@/assets/images/servicios.png")}
           style={styles.image}
         />
         {service.verified && (

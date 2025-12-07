@@ -114,9 +114,7 @@ export default function ServiceDetailPage() {
 
         {service.image && (
           <Image
-            source={{
-              uri: `https://mibackend-mchambas.onrender.com${service.image}`,
-            }}
+            source={require("@/assets/images/servicios.png")}
             style={styles.image}
           />
         )}
