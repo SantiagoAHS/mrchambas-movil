@@ -61,7 +61,7 @@ export default function PedidoItem({ pedido }: { pedido: Pedido }) {
       </View>
 
       <Text style={styles.info}>
-        Vendedor: <Text style={styles.bold}>{pedido.comprador}</Text>
+        Comprador: <Text style={styles.bold}>{pedido.comprador}</Text>
       </Text>
 
       <Text style={styles.info}>
