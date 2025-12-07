@@ -1,3 +1,4 @@
+// app/taps/Inicio.tsx
 import React from "react";
 import { ScrollView } from "react-native";
 import HeroSection from "@/components/layout/HeroSection";
